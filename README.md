@@ -4,127 +4,103 @@
 
 ---
 
-**OK，你已经来到了第二个环节**
+**OK，你已经来到了第三个环节**
 
-上一个环节里我们介绍了如何使用 [Mocha](https://mochajs.org/) 和 [Chai](https://www.chaijs.com/) 来编写测试用例。当时我们的测试代码是运行在 node 环境中的。如果我想把一个 Vue 项目在浏览器里运行测试代码，要怎么做呢？
+上一个环节里我们介绍了如何使用 [Karma](https://karma-runner.github.io/2.0/index.html) 来配置测试环境，可以方便的让我们的测试代码在实际浏览器里运行。
 
-这个环节里，我们会介绍如何使用 [Karma](https://karma-runner.github.io/2.0/index.html) 来配置测试环境，可以让我们的测试代码在实际浏览器里运行。
+这个环节我们会介绍如何配置 [Travis-CI](https://travis-ci.org/) ，当我们提交代码的时候可以自动执行测试。
 
 ## 先看结果
 
-在项目下，通过 `npm run test` 可以看到测试结果。
+配置完成后，当我们 Push 代码，或者提交 Pull Request 时，Travis-CI 会自动执行测试代码。
 
-```shell
-17 09 2018 19:54:07.410:INFO [karma]: Karma v3.0.0 server started at http://0.0.0.0:9876/
-17 09 2018 19:54:07.413:INFO [launcher]: Launching browser Chrome with unlimited concurrency
-17 09 2018 19:54:07.424:INFO [launcher]: Starting browser Chrome
-17 09 2018 19:54:09.083:INFO [Chrome 68.0.3440 (Mac OS X 10.13.4)]: Connected on socket HvVkYqYm9NfvTy3xAAAA with id 29946103
-INFO LOG: 'Download the Vue Devtools extension for a better development experience:
-https://github.com/vuejs/vue-devtools'
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-commit.png" width="70%" alt="travis-ci-commit" /></p>
 
-  我的 Vue 测试
-    #标题
-      ✓ 标题应该为 Welcome to Your Vue.js App
-
-Chrome 68.0.3440 (Mac OS X 10.13.4): Executed 1 of 1 SUCCESS (0.052 secs / 0.014 secs)
-TOTAL: 1 SUCCESS
-```
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-pr.PNG" width="70%" alt="travis-ci-pr" /></p>
 
 ## 我们都做了什么？
 
-上一个 Commit 我已经偷偷初始化了一个 Vue 项目。这个环节会针对这个 Vue 项目写一个测试用例。
+1. 去 [Travis-ci.com](https://travis-ci.com/) ，通过 Github 账号进行注册并授权。
+2. 你会看到你在 Github 上所有的 repo, 选择其中一个启用 Travis-CI 。
+3. 在项目中添加 `.travis.yml` 配置文件。比如我们项目中的配置文件为：
 
-我们在 test/test.js 文件中编写了一个测试用例，判断我们 Vue 项目中 "h1" 标签中的内容是否为 "Welcome to Your Vue.js App"。
-
-test.js 文件的内容如下：
-
-```javascript
-import Vue from 'vue'
-import App from '../src/App'
-
-Vue.config.productionTip = false
-
-describe('我的 Vue 测试', function () {
-  describe('#标题', function () {
-    it('标题应该为 Welcome to Your Vue.js App', function () {
-      // 示例化 Vue, 此时示例对应的 DOM 元素没有在页面中。
-      const instance = new Vue({
-        render: h => h(App),
-        components: { App }
-      }).$mount()
-
-      // 手动将 DOM 添加到页面中。
-      document.body.appendChild(instance.$el)
-
-      let h1 = instance.$el.querySelector('.hello h1')
-      expect(h1.textContent).to.equal('Welcome to Your Vue.js App')
-    })
-  })
-})
+```yaml
+# 指定语言 https://docs.travis-ci.com/user/languages/javascript-with-nodejs/
+language: node_js
+# 缓存 node_modules 文件夹，不需要每次都下载安装全部 npm 包。
+cache:
+  directories:
+    - node_modules
+# 指定 node 版本
+node_js:
+  - "6"
+# 只对指定的分支执行构建  https://docs.travis-ci.com/user/customizing-the-build/#building-specific-branches
+branches:
+  only:
+    - master
+# 要执行的脚本
+script:
+  - npm test
+# 配置当构建失败的时候发送通知 https://docs.travis-ci.com/user/notifications
+notifications:
+# 设置 TravisBuddy，每当 Pull Request 构建失败的时候，TravisBuddy 会收到通知
+# 同时会将 构建失败的日志 以评论的形式添加到 Pull Request ，方便 PR 的提交者查看错误原因。
+  webhooks:
+    urls:
+      - https://www.travisbuddy.com/
+    on_success: never # 构建成功不发送邮件。默认是 change，即默认只有上次失败这次修复的成功构建才会发送邮件
+    on_failure: always # 构建失败总是发送邮件。默认就是 always
 ```
 
-之后的内容就是我们今天要了解的重点了，配置 Karma 让我们的测试用例可以在 Chrome 中执行。Karma 的配置文件位置是 `test/karma.conf.js`，具体内容为：
+4. 之后每次 Push 和 Pull Request 都会自动执行测试。
 
-```javascript
-const webpackConfig = require('../build/webpack.test.conf')
+## Travis-CI 是怎么工作的呢？
 
-module.exports = function (config) {
-  config.set({
-    // 指定要运行测试的浏览器，可以指定多个。必须要安装对应的加载器(launcher)，karma 会在调起本地的浏览器。
-    browsers: ['Chrome'],
-    // 指定要使用的测试框架
-    frameworks: ['mocha', 'chai'],
-    // 这个插件会将每个测试用例的测试结果打印到命令行 console 中。
-    reporters: ['spec'],
-    // 希望执行的测试文件, 这里的文件会经过 preprocessor 处理后，通过 script 便签添加到测试页面中。
-    // 更多设置可以查看 https://karma-runner.github.io/2.0/config/files.html
-    files: [
-      './test.js'
-    ],
-    // 使用 webapck 对文件进行编译打包，同时配置 sourcemap 方便调试代码
-    preprocessors: {
-      './test.js': ['webpack', 'sourcemap']
-    },
-    // wepack 配置项
-    webpack: webpackConfig,
-    webpackMiddleware: {
-      noInfo: true
-    },
-    // 运行一次后退出，如果设为 true，运行后会默认 watch "files" 中指定的文件，如果有修改会自动重新执行。
-    singleRun: true
-  })
-}
-```
+我们每次 Push 代码的时候，Travis-CI 主要做了两个工作：
 
-这个配置文件中，我们设置使用 **Mocha** 测试框架，**Chai** 断言库，指定了测试代码的入口 `test.js`，同时配置了预处理器 **webpack** 对测试代码进行预处理（编译打包）。Karma 会在本地启动一个 server （默认端口号为9876）托管测试文件。之后会调起本地 **Chrome** 浏览器打开一个测试页面，将处理后的测试代码通过 `<script>` 便签添加到页面中执行。默认情况下，Karma 会在页面中创建一个 iFrame 来运行测试代码。
+* install: 安装所有的依赖
+* script: 执行构建脚本
 
-另外需要注意的是：
+如果我们指定了项目语言是 **node_js**，那么 Travis-CI 默认会使用 `npm install` 命令安装依赖；同时，默认的构建脚本的命令是：`npm test`，因此对我们的项目来说，会执行测试代码。
 
-> Most of the framework adapters, reporters, preprocessors and launchers need to be loaded as plugins.
+另外，Travis-CI 同时预留了一些钩子比如 before_install, before_script 等可以让我们在 install 和 script 之前或之后执行一些其他工作。感兴趣的可以看下 Travis-CI 的[生命周期](https://docs.travis-ci.com/user/customizing-the-build/#the-build-lifecycle)。
 
-框架适配器（framework adapters）比如：Karma-mocha, Karma-chai ，reporters 比如 Karma-spec-reporter （后面我们还会介绍 Karma-coverage），以及预处理器，比如 Karma-webpack, Karma-sourcemap-loader，还有加载器（launchers），比如 Karma-chrome-launcher，都是作为 Karma 插件工作的。
+## 配置文件的简单介绍
 
-针对这些 [Karma 插件](https://karma-runner.github.io/2.0/config/plugins.html) 我们都要安装对应的 npm 包，这些插件一般是以 `karma-` 开头，而 Karma 默认会自动加载 `karma-` 开头的 npm 包。因此我们没有在配置文件中明确指定 `plugins` 配置项（实际上它的默认配置项为 `karma-*`），但是一定要记得安装相应的 npm 包，特别是框架适配器和加载器，框架指定 Mocha 就要安装 Karma-mocha，浏览器指定 Chrome ，就要安装 Karma-chrome-launcher。
+我们是通过 .travis.yml 告诉 Travis-CI 要做哪些事情，通常 .travis.yml 中配置会包含：
 
-最后我们配置 npm script，使用 `npm run test` ，就可以执行 Karma 命令在 Chrome 中执行测试代码了。
+* 项目所使用的语言；
+* 你希望在构建之前执行哪些命令或者脚本，比如安装依赖；
+* 使用什么命令运行测试代码；
+* 设置邮件等当构建失败时获取相应通知。
 
-```javascript
-{ // package.json
-  ...
-  "script": {
-    ...
-    "test": "karma start test/karma.conf.js"
-  },
-  ...
-}
-```
+在上面的配置文件可以看到，我们还可以指定分支，只对 **mater** 分支执行构建。具体可以参考[这里](https://docs.travis-ci.com/user/customizing-the-build/#safelisting-or-blocklisting-branches)。
+
+关于通知的配置，默认情况下如果构建失败或者上一次构建失败这次构建成功后，会给提交 commit 的作者或者仓库的管理者发送邮件。**需要注意，Pull Request 不会触发 Email 通知。**
+
+如果你 Push 代码后没有收到邮件通知，你需要检查
+
+* 邮件是否被拦截进入垃圾邮箱；
+* 你在项目中设置的 git 邮箱是否已经注册 Github 或者已经添加到 Github 的[验证邮箱](https://github.com/settings/emails)。
+
+在上面的通知配置中，我们添加了一个 Webhook 来接收通知。这个 Webhook 是 [TravisBuddy](https://www.travisbuddy.com/) ，它会在每次 Pull Request 构建失败收到通知时，将错误日志以评论的方式添加到 PR 中，方便 PR 的提交者查看失败原因。就像下面图片中显示的样子：
+
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-pr-fail.PNG" width="70%" alt="travis-ci-pr-fail" /></p>
+
+同时 TravisBuddy 还会将失败结果通过邮件的形式通知 PR 的发起者，这个配置刚好弥补了，默认状态下 Pull Request 构建失败不会发送邮件的缺点。
+
+> **注意: 之前 Karma 配置中执行测试的浏览器为 Chrome，当我们启用 Travis-CI 后，Travis-CI 是在虚拟机里执行测试代码的，此时环境没有Chrome 可以运行。因此我们将浏览器改为 [PhantomJS](http://phantomjs.org/)（同时记得安装对应的 launcher ）**
+
 
 ## 总结
 
-Karma 是一个配置测试环境的工具。可以通过配置选择不同的测试框架，将我们的测试代码运行的不同的浏览器上。同时支持各种插件，比如通过 webpack 插件对我们的测试代码进行编译打包。在之后的环节中我们还会介绍，通过插件计算测试代码的覆盖率。
+通过注册 Travis-CI 同时给项目添加 `.travis.yml` 配置文件，我们就可以在每次提交代码时自动执行单元测试，如果构建失败还会将失败结果通知我们。
 
-想要了解更多有关 Karma 的使用方式，可以自行去 [Karma 官网](https://karma-runner.github.io/2.0/index.html) 查看文档。
+Travis-CI 还可以做很多事情，想要了解更多有关 Travis-CI 的使用方式，可以自行去 [Travis-CI 官网](https://docs.travis-ci.com/) 查看文档。
 
 ## 下一个环节
 
-下一个环节我们会介绍如何配置 Travis-CI 当我们在 Github 上提交代码的时候自动运行测试代码。
+下一个环节我们会介绍如何如何获得 **测试覆盖率**。
+
+
+
