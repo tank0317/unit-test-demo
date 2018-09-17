@@ -4,11 +4,11 @@
 
 ——————
 
-**OK，你已经来到了第二个环节**
+**OK，你已经来到了第三个环节**
 
-上一个环节里我们介绍了如何使用 [Mocha](https://mochajs.org/) 和 [Chai](https://www.chaijs.com/) 来编写测试用例。当时我们的测试代码是运行在 node 环境中的。如果我想把一个 Vue 项目在浏览器里运行测试代码，要怎么做呢？
+上一个环节里我们介绍了如何使用 [Karma](https://karma-runner.github.io/2.0/index.html) 来配置测试环境，可以方便的让我们的测试代码在实际浏览器里运行。
 
-这个环节里，我们会介绍如何使用 [Karma](https://karma-runner.github.io/2.0/index.html) 来配置测试环境，可以让我们的测试代码在实际浏览器里运行。
+这个环节我们会介绍如何配置 Travis-CI 当我们提交代码的时候可以自动执行测试。
 
 ## 先看结果
 
