@@ -17,7 +17,7 @@ describe('我的 Vue 测试', function () {
 
       let h1 = instance.$el.querySelector('.hello h1')
 
-      expect(h1.textContent).to.equal('Welcome to Your Vue.js App')
+      expect(h1.textContent).to.equal('Welcome to Your Vue.js Ap')
     })
   })
 })
