@@ -14,8 +14,19 @@ module.exports = function (config) {
     client: {
       useIframe: false
     },
-    // 这个插件会将每个测试用例的测试结果打印到命令行 console 中。
-    reporters: ['spec'],
+    // spec 插件会将每个测试用例的测试结果打印到命令行 console 中,
+    // coverage 插件会配合 babel-plugin-istanbul 生成覆盖率报告
+    reporters: ['spec', 'coverage'],
+    coverageReporter: {
+    // 配置生成的代码覆盖率文件存放位置
+      dir: './coverage',
+      reporters: [
+        // 生成 lcov.info 文件，该文件中包含了详细的每个文件，每行，每个函数的执行信息。
+        { type: 'lcov', subdir: '.' },
+        // 在命令行输出简要覆盖率数据
+        { type: 'text-summary' }
+      ]
+    },
     // 希望执行的测试文件, 这里的文件会经过 preprocessor 处理后，通过 script 便签添加到测试页面中。
     // 更多设置可以查看 https://karma-runner.github.io/2.0/config/files.html
     files: [
