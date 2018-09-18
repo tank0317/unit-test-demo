@@ -1,124 +1,58 @@
 # unit-test-demo
 
+[![travis-ci](https://travis-ci.org/tank0317/unit-test-demo.svg?branch=master)](https://travis-ci.org/tank0317/unit-test-demo)
+[![codecov](https://codecov.io/gh/tank0317/unit-test-demo/branch/master/graph/badge.svg)](https://codecov.io/gh/tank0317/unit-test-demo)
+
 一步一步介绍如何给项目添加单元测试。
 
 ---
 
-**OK，你已经来到了第四个环节**
+**哇哦，你已经来到了最后一个环节**
 
-上一个环节里我们介绍了如何配置 [Travis-CI](https://travis-ci.org/) ，当我们提交代码的时候可以自动执行测试。
+前面四个环节已经介绍了如何给项目添加单元测试。包括使用 Mocha Chai 编写测试用例，基于 Karma 配置测试环境，引入 Travis-CI 自动执行测试代码，最后基于 istanbul 通过 Codecov 分析测试覆盖率。
 
-这个环节我们会介绍如何获取测试覆盖率数据，同时每次 Push 或者 Pull Request 时能够将数据上传到 [Codecov](https://codecov.io/) ，在 Github 中看到当次提交的覆盖率。
+这个环节我们给项目添加 Travis-CI 和 Codecov 徽章，顺带了解下如何做单元测试调试以及什么是 "github status checks" 。
 
 ## 先看结果
 
-配置完成后，当我们 Push 代码或者提交 Pull Request 时，能够看到当次提交的测试覆盖率。
+如上面所示，我们已经给项目添加了对应徽章。
 
-<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/codecov-commit.PNG" width="70%" alt="codecov-commit" /></p>
-
-<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/coverage-pull-request.PNG" width="70%" alt="codecov-pull-request" /></p>
 
 ## 我们都做了什么？
 
-### 1. 添加 babel 插件 [babel-plugin-istanbul](https://github.com/istanbuljs/babel-plugin-istanbul) 
+对于 Travis-CI ，点击项目中的徽章图标，可以得到链接，以图片的形式添加到项目 README.md 即可。
 
-该插件会在源码中插入统计代码；同时设置只在 BABEL_ENV 为 "test" 时启用该插件。
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-badge.PNG" width="70%" alt="travis-ci-badge" /></p>
 
-```javascript
-{
-  // .babelrc
-  ...
-  "env": {
-    "test": {
-      "plugins": [ "istanbul" ]
-    }
-  }
-}
-```
+对于 Codecov ，在项目设置里直接提供了完整的 markdown 直接复制即可。如下所示：
 
-### 2. 添加 Karma 插件 [karma-coverage](https://github.com/karma-runner/karma-coverage) ，该插件会生成测试覆盖率报告；
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/codecov-badge.PNG" width="70%" alt="codecov-badge" /></p>
 
-```javascript
-module.exports = function (config) {
-  config.set({
-    ...
-    // spec 插件会将每个测试用例的测试结果打印到命令行 console 中,
-    // coverage 插件会配合 babel-plugin-istanbul 生成覆盖率报告
-    reporters: ['spec', 'coverage'],
-    coverageReporter: {
-    // 配置生成的代码覆盖率文件存放位置
-      dir: './coverage',
-      reporters: [
-        // 生成 lcov.info 以及 html 文件，lcov.info 该文件中包含了详细的每个文件，每行，每个函数的执行信息。
-        { type: 'lcov', subdir: '.' },
-        // 在命令行输出简要覆盖率数据
-        { type: 'text-summary' }
-      ]
-    },
-    ...
-  )}
-}
-```
+## 其他
 
-现在执行 `npm run test` 会在命令行看到简要覆盖率信息，同时在 test 文件夹下会生成 coverage 文件夹，包含了生成的测试覆盖率报告，其中包含 lcov.info 文件，该文件中包含了详细的每个文件，每行，每个函数的执行信息，之后会上传 Codecov 。该文件夹下还有一些 html 形式的覆盖率报告，可以在本地用浏览器打开查看。打开后看到我们的覆盖率为 100%， 同时能够看到，项目中只有一行代码并且被执行了。其中 'HelloWorld.vue' 文件第 90 行有一个 **1x** 字标，表示该行被执行了一次（这其实是我们这个项目中唯一一行，我们自己写的可能会被执行的 JS 代码，其他都是 html css 以及传递给 Vue 配置项）。
+### 如何调试测试代码？
 
-此时我们只能在本地查看覆盖率，但是我们希望更能够在每次 Push 或 Pull Request 中看到覆盖率信息。引入 [Codecov](https://codecov.io/) ！
+由于我们使用 Travis-CI 的原因，Karma 中浏览器都会配置成 Phantomjs，此时调试起来极不方便。我们正常开发过程中，都会在浏览器里借助 DevTools 进行调试，所以当需要调试代码的时候，最好将浏览器修改为 Chrome，此时和我们平时调试代码的方式是一样的。
 
-### 3. 使用 Github 账号注册 [Codecov](https://codecov.io/) 并同意授权。
+### Github Status Checks ?
 
-添加相应的 repo ，此时会给出一个 CODECOV_TOKEN ，然后告诉你上传你的 reports (覆盖率报告) 即可。
+为什么每次 Travis-CI 和 Codecov 的结果能够直接显示在 Github 的 Commit 或者 Pull Request 中？比如下面的样子？
 
-安装 codecov 命令， `npm install codecov --save-dev`，通过 `./node_modules/.bin/codecov --token ****` codecov 会自动在当前目录下搜索覆盖率报告文件，并上传。
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/codecov-commit.PNG" width="70%" alt="codecov-commit" /></p>
 
-现在你能够在 [codecov.io](https://codecov.io/) 上看到当次提交的测试覆盖率（代码必须提交到 Github）。引入 Codecov 的好处是，我们能够在 Github 的 Commit 和 Pull Request 中看到覆盖率信息，同时 Codecov 提供了更加清晰的视觉 UI 展示哪些代码被覆盖或未被覆盖， Codecov 还会将当次提交与上次提交进行比较，告诉你本次修改的部分覆盖率是多少，哪些地方覆盖率变化了等信息，根据这些信息可以快速定位是否需要修改源代码或者补充修改测试代码。
+原因是：当我们 Push 或者 Pull Request 的时候 Github 会给 Travis-CI 和 Codecov 发送消息，告诉他们相应事件发生了。另外 Github 还提供了 [Statuses API](https://developer.github.com/v3/repos/statuses/) ，Travis-CI 和 Codecov 可以通过该接口对 Github 中的某个 Commit 添加 `error`, `failure`, `pending`, `success` 状态以及一些描述信息，类似上图所示。
 
-### 4. 设置 npm script
+Travis-CI 和 Codecov 是为什么会收到这些事件呢？两者还有点不一样，Travis-CI 是作为 [Github App](https://developer.github.com/apps/about-apps/) 存在的，而 Codecov 只是使用了 [Webhook](https://developer.github.com/webhooks/) 实现。在 Github 仓库设置中可以看到：
 
-通过 Travis-CI 每次执行单元测试后自动上传覆盖率信息。npm script 修改如下：
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/github-webhook-codecov.PNG" width="70%" alt="github-webhook-codecov" /></p>
 
-```javascript
-{
-  // package.json
-  ...
-  "scripts": {
-    ...
-    // cross-env 每次执行测试时，指定 Babel 环境为 "test" ，启用 babel-plugin-istanbul
-    "unit": "cross-env BABEL_ENV=test karma start test/karma.conf.js",
-    "codecov": "codecov",
-    "test": "npm run unit && npm run codecov"
-  },
-  ...
-}
-```
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/github-app-travis-ci.PNG" width="70%" alt="github-app-travis-ci" /></p>
 
-然后将 CODECOV_TOKEN 添加到 Travis-CI 的环境变量中即可，Travis-CI 执行 codecov 命令是会从环境变量中拿到 CODECOV_TOKEN 。
+[Webhook](https://developer.github.com/webhooks/) 相当于一种事件钩子，事件发生后，Codecov 收到通知，然后将已经上传的覆盖率数据信息通过 Statuses API 体现在 Commit 中。从始至终都没有接触到我们的代码。
 
-<p align="center" ><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-env-var.PNG" width="70%" alt="travis-ci-env-var" /></p>
+[Github App](https://developer.github.com/apps/about-apps/) 也是基于 Webhook ，但是有更多的权限，比如Travis-CI 会拿到我们的源代码，然后执行构建，运行测试代码。
 
-此后每次 Push 或者 Pull Request 就可以自动执行测试代码并上传测试覆盖率报告。Excellent !
+我们什么时候给 Codecov 添加的 Webhook，又是什么时候在 Github 仓库中安装 Github App, Traivs-CI 呢？就是我们通过Github 账号注册并授权的时候。
 
-## 关于 Codecov
 
-实际上我们可以在项目中添加 [codecov.yml](https://docs.codecov.io/docs/codecov-yaml) 文件自定义 Codecov 行为。不过，庆幸的是默认情况下，Codecov 就可以很好的满足我们的需求。
-
-比如默认情况下 ：
-
-* Codecov 会在 commit 和 Pull Request 中提供项目整体（project）以及 修改部分（patch）覆盖率。
-* 对于整体覆盖率，当次提交不能低于上次提交的覆盖率，否则给出警告。
-* 对于修改部分覆盖率，只要不是 100% 就会给警告。
-* 每次 pull request，Codecov 会将当次提交与主干分支覆盖率进行比较，并且将信息以评论的形式添加到 Pull Request 中。
-
-## 总结
-
-通过引入 babel-plugin-istanbul 和 karma-coverage 插件我们能够得到单元测试的覆盖率信息。其次将覆盖率报告上传 Codecov 能够更好的对单元测试的覆盖情况进行分析，最后我们把 codecov 添加到 Travis-CI 中，每次执行测试代码都会更新测试覆盖率。
-
-想要了解更多有关 Codecov 的信息，可以自行去 [codecov](https://docs.codecov.io/docs) 查看文档。
-
-## 下一个环节
-
-现在为止，我们已经基本了解了如何给项目添加单元测试，并且统计测试覆盖率，同时将这些工作集成到 Travis-CI 中自动完成，还可以在 Codecov 中查看分析测试代码覆盖详情。
-
-下一环节会轻松一点，我们介绍怎么在项目中添加 Travis-CI 和 Codecov 的徽章，如下所示。同时了解下如何对测试代码进行调试以及什么是 "github status checks"。
-
-<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-coverage-badge.PNG" width="230" alt="travis-ci-coverage-badge" /></p>
 
