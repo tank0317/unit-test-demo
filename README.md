@@ -4,103 +4,121 @@
 
 ---
 
-**OK，你已经来到了第三个环节**
+**OK，你已经来到了第四个环节**
 
-上一个环节里我们介绍了如何使用 [Karma](https://karma-runner.github.io/2.0/index.html) 来配置测试环境，可以方便的让我们的测试代码在实际浏览器里运行。
+上一个环节里我们介绍了如何配置 [Travis-CI](https://travis-ci.org/) ，当我们提交代码的时候可以自动执行测试。
 
-这个环节我们会介绍如何配置 [Travis-CI](https://travis-ci.org/) ，当我们提交代码的时候可以自动执行测试。
+这个环节我们会介绍如何获取测试覆盖率数据，同时每次 Push 或者 Pull Request 时能够将数据上传到 [Codecov](https://codecov.io/) ，在 Github 中看到当次提交的覆盖率。
 
 ## 先看结果
 
-配置完成后，当我们 Push 代码，或者提交 Pull Request 时，Travis-CI 会自动执行测试代码。
+配置完成后，当我们 Push 代码或者提交 Pull Request 时，能够看到当次提交的测试覆盖率。
 
-<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-commit.png" width="70%" alt="travis-ci-commit" /></p>
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/codecov-commit.PNG" width="70%" alt="codecov-commit" /></p>
 
-<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-pr.PNG" width="70%" alt="travis-ci-pr" /></p>
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/coverage-pull-request.PNG" width="70%" alt="codecov-pull-request" /></p>
 
 ## 我们都做了什么？
 
-1. 去 [Travis-ci.com](https://travis-ci.com/) ，通过 Github 账号进行注册并授权。
-2. 你会看到你在 Github 上所有的 repo, 选择其中一个启用 Travis-CI 。
-3. 在项目中添加 `.travis.yml` 配置文件。比如我们项目中的配置文件为：
+### 1. 添加 babel 插件 [babel-plugin-istanbul](https://github.com/istanbuljs/babel-plugin-istanbul) 
 
-```yaml
-# 指定语言 https://docs.travis-ci.com/user/languages/javascript-with-nodejs/
-language: node_js
-# 缓存 node_modules 文件夹，不需要每次都下载安装全部 npm 包。
-cache:
-  directories:
-    - node_modules
-# 指定 node 版本
-node_js:
-  - "6"
-# 只对指定的分支执行构建  https://docs.travis-ci.com/user/customizing-the-build/#building-specific-branches
-branches:
-  only:
-    - master
-# 要执行的脚本
-script:
-  - npm test
-# 配置当构建失败的时候发送通知 https://docs.travis-ci.com/user/notifications
-notifications:
-# 设置 TravisBuddy，每当 Pull Request 构建失败的时候，TravisBuddy 会收到通知
-# 同时会将 构建失败的日志 以评论的形式添加到 Pull Request ，方便 PR 的提交者查看错误原因。
-  webhooks:
-    urls:
-      - https://www.travisbuddy.com/
-    on_success: never # 构建成功不发送邮件。默认是 change，即默认只有上次失败这次修复的成功构建才会发送邮件
-    on_failure: always # 构建失败总是发送邮件。默认就是 always
+该插件会在源码中插入统计代码；同时设置只在 BABEL_ENV 为 "test" 时启用该插件。
+
+```javascript
+{
+  // .babelrc
+  ...
+  "env": {
+    "test": {
+      "plugins": [ "istanbul" ]
+    }
+  }
+}
 ```
 
-4. 之后每次 Push 和 Pull Request 都会自动执行测试。
+### 2. 添加 Karma 插件 [karma-coverage](https://github.com/karma-runner/karma-coverage) ，该插件会生成测试覆盖率报告；
 
-## Travis-CI 是怎么工作的呢？
+```javascript
+module.exports = function (config) {
+  config.set({
+    ...
+    // spec 插件会将每个测试用例的测试结果打印到命令行 console 中,
+    // coverage 插件会配合 babel-plugin-istanbul 生成覆盖率报告
+    reporters: ['spec', 'coverage'],
+    coverageReporter: {
+    // 配置生成的代码覆盖率文件存放位置
+      dir: './coverage',
+      reporters: [
+        // 生成 lcov.info 以及 html 文件，lcov.info 该文件中包含了详细的每个文件，每行，每个函数的执行信息。
+        { type: 'lcov', subdir: '.' },
+        // 在命令行输出简要覆盖率数据
+        { type: 'text-summary' }
+      ]
+    },
+    ...
+  )}
+}
+```
 
-我们每次 Push 代码的时候，Travis-CI 主要做了两个工作：
+现在执行 `npm run test` 会在命令行看到简要覆盖率信息，同时在 test 文件夹下会生成 coverage 文件夹，包含了生成的测试覆盖率报告，其中包含 lcov.info 文件，该文件中包含了详细的每个文件，每行，每个函数的执行信息，之后会上传 Codecov 。该文件夹下还有一些 html 形式的覆盖率报告，可以在本地用浏览器打开查看。打开后看到我们的覆盖率为 100%， 同时能够看到，项目中只有一行代码并且被执行了。其中 'HelloWorld.vue' 文件第 90 行有一个 **1x** 字标，表示该行被执行了一次（这其实是我们这个项目中唯一一行，我们自己写的可能会被执行的 JS 代码，其他都是 html css 以及传递给 Vue 配置项）。
 
-* install: 安装所有的依赖
-* script: 执行构建脚本
+此时我们只能在本地查看覆盖率，但是我们希望更能够在每次 Push 或 Pull Request 中看到覆盖率信息。引入 [Codecov](https://codecov.io/) ！
 
-如果我们指定了项目语言是 **node_js**，那么 Travis-CI 默认会使用 `npm install` 命令安装依赖；同时，默认的构建脚本的命令是：`npm test`，因此对我们的项目来说，会执行测试代码。
+### 3. 使用 Github 账号注册 [Codecov](https://codecov.io/) 并同意授权。
 
-另外，Travis-CI 同时预留了一些钩子比如 before_install, before_script 等可以让我们在 install 和 script 之前或之后执行一些其他工作。感兴趣的可以看下 Travis-CI 的[生命周期](https://docs.travis-ci.com/user/customizing-the-build/#the-build-lifecycle)。
+添加相应的 repo ，此时会给出一个 CODECOV_TOKEN ，然后告诉你上传你的 reports (覆盖率报告) 即可。
 
-## 配置文件的简单介绍
+安装 codecov 命令， `npm install codecov --save-dev`，通过 `./node_modules/.bin/codecov --token ****` codecov 会自动在当前目录下搜索覆盖率报告文件，并上传。
 
-我们是通过 .travis.yml 告诉 Travis-CI 要做哪些事情，通常 .travis.yml 中配置会包含：
+现在你能够在 [codecov.io](https://codecov.io/) 上看到当次提交的测试覆盖率（代码必须提交到 Github）。引入 Codecov 的好处是，我们能够在 Github 的 Commit 和 Pull Request 中看到覆盖率信息，同时 Codecov 提供了更加清晰的视觉 UI 展示哪些代码被覆盖或未被覆盖， Codecov 还会将当次提交与上次提交进行比较，告诉你本次修改的部分覆盖率是多少，哪些地方覆盖率变化了等信息，根据这些信息可以快速定位是否需要修改源代码或者补充修改测试代码。
 
-* 项目所使用的语言；
-* 你希望在构建之前执行哪些命令或者脚本，比如安装依赖；
-* 使用什么命令运行测试代码；
-* 设置邮件等当构建失败时获取相应通知。
+### 4. 设置 npm script
 
-在上面的配置文件可以看到，我们还可以指定分支，只对 **mater** 分支执行构建。具体可以参考[这里](https://docs.travis-ci.com/user/customizing-the-build/#safelisting-or-blocklisting-branches)。
+通过 Travis-CI 每次执行单元测试后自动上传覆盖率信息。npm script 修改如下：
 
-关于通知的配置，默认情况下如果构建失败或者上一次构建失败这次构建成功后，会给提交 commit 的作者或者仓库的管理者发送邮件。**需要注意，Pull Request 不会触发 Email 通知。**
+```javascript
+{
+  // package.json
+  ...
+  "scripts": {
+    ...
+    // cross-env 每次执行测试时，指定 Babel 环境为 "test" ，启用 babel-plugin-istanbul
+    "unit": "cross-env BABEL_ENV=test karma start test/karma.conf.js",
+    "codecov": "codecov",
+    "test": "npm run unit && npm run codecov"
+  },
+  ...
+}
+```
 
-如果你 Push 代码后没有收到邮件通知，你需要检查
+然后将 CODECOV_TOKEN 添加到 Travis-CI 的环境变量中即可，Travis-CI 执行 codecov 命令是会从环境变量中拿到 CODECOV_TOKEN 。
 
-* 邮件是否被拦截进入垃圾邮箱；
-* 你在项目中设置的 git 邮箱是否已经注册 Github 或者已经添加到 Github 的[验证邮箱](https://github.com/settings/emails)。
+<p align="center" ><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-env-var.PNG" width="70%" alt="travis-ci-env-var" /></p>
 
-在上面的通知配置中，我们添加了一个 Webhook 来接收通知。这个 Webhook 是 [TravisBuddy](https://www.travisbuddy.com/) ，它会在每次 Pull Request 构建失败收到通知时，将错误日志以评论的方式添加到 PR 中，方便 PR 的提交者查看失败原因。就像下面图片中显示的样子：
+此后每次 Push 或者 Pull Request 就可以自动执行测试代码并上传测试覆盖率报告。Excellent !
 
-<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-pr-fail.PNG" width="70%" alt="travis-ci-pr-fail" /></p>
+## 关于 Codecov
 
-同时 TravisBuddy 还会将失败结果通过邮件的形式通知 PR 的发起者，这个配置刚好弥补了，默认状态下 Pull Request 构建失败不会发送邮件的缺点。
+实际上我们可以在项目中添加 [codecov.yml](https://docs.codecov.io/docs/codecov-yaml) 文件自定义 Codecov 行为。不过，庆幸的是默认情况下，Codecov 就可以很好的满足我们的需求。
 
-> **注意: 之前 Karma 配置中执行测试的浏览器为 Chrome，当我们启用 Travis-CI 后，Travis-CI 是在虚拟机里执行测试代码的，此时环境没有Chrome 可以运行。因此我们将浏览器改为 [PhantomJS](http://phantomjs.org/)（同时记得安装对应的 launcher ）**
+比如默认情况下 ：
 
+* Codecov 会在 commit 和 Pull Request 中提供项目整体（project）以及 修改部分（patch）覆盖率。
+* 对于整体覆盖率，当次提交不能低于上次提交的覆盖率，否则给出警告。
+* 对于修改部分覆盖率，只要不是 100% 就会给警告。
+* 每次 pull request，Codecov 会将当次提交与主干分支覆盖率进行比较，并且将信息以评论的形式添加到 Pull Request 中。
 
 ## 总结
 
-通过注册 Travis-CI 同时给项目添加 `.travis.yml` 配置文件，我们就可以在每次提交代码时自动执行单元测试，如果构建失败还会将失败结果通知我们。
+通过引入 babel-plugin-istanbul 和 karma-coverage 插件我们能够得到单元测试的覆盖率信息。其次将覆盖率报告上传 Codecov 能够更好的对单元测试的覆盖情况进行分析，最后我们把 codecov 添加到 Travis-CI 中，每次执行测试代码都会更新测试覆盖率。
 
-Travis-CI 还可以做很多事情，想要了解更多有关 Travis-CI 的使用方式，可以自行去 [Travis-CI 官网](https://docs.travis-ci.com/) 查看文档。
+想要了解更多有关 Codecov 的信息，可以自行去 [codecov](https://docs.codecov.io/docs) 查看文档。
 
 ## 下一个环节
 
-下一个环节我们会介绍如何如何获得 **测试覆盖率**。
+现在为止，我们已经基本了解了如何给项目添加单元测试，并且统计测试覆盖率，同时将这些工作集成到 Travis-CI 中自动完成，还可以在 Codecov 中查看分析测试代码覆盖详情。
 
+下一环节会轻松一点，我们介绍怎么在项目中添加 Travis-CI 和 Codecov 的徽章，如下所示。同时了解下如何对测试代码进行调试以及什么是 "github status checks"。
 
+<p align="center"><img src="http://om0jxp12h.bkt.clouddn.com/travis-ci-coverage-badge.PNG" width="230" alt="travis-ci-coverage-badge" /></p>
 
