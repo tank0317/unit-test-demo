@@ -14,7 +14,6 @@ describe('我的 Vue 测试', function () {
 
       // 手动将 DOM 添加到页面中。
       document.body.appendChild(instance.$el)
-
       let h1 = instance.$el.querySelector('.hello h1')
       expect(h1.textContent).to.equal('Welcome to Your Vue.js App')
     })
